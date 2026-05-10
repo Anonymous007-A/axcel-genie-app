@@ -1,0 +1,708 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowRight, Sparkles, Database, LayoutDashboard, 
+  Wand2, BarChart3, Cloud, CheckCircle2, ChevronDown,
+  Lock, Zap, FileSpreadsheet, Terminal, Play, Pause,
+  Check, X, AlertCircle, ArrowUpRight, Copy, MousePointer2, Shield
+} from "lucide-react";
+
+// ==========================================
+// 1. ADVANCED DATA & CONSTANTS
+// ==========================================
+
+const PRICING_TIERS = [
+  {
+    name: "Starter",
+    price: { monthly: 19, annually: 15 },
+    description: "Perfect for solopreneurs and small datasets.",
+    features: ["Up to 10,000 rows/month", "Basic AI Cleaning", "CSV & Excel Export", "Community Support"],
+    popular: false,
+    icon: <Database size={24} className="text-blue-400" />
+  },
+  {
+    name: "Pro Workspace",
+    price: { monthly: 49, annually: 39 },
+    description: "For data teams needing autonomous workflows.",
+    features: ["Unlimited Rows", "Advanced Natural Language Queries", "Live Database Sync (SQL, Postgres)", "Priority Email Support", "API Access (10k req/mo)"],
+    popular: true,
+    icon: <Zap size={24} className="text-yellow-400" />
+  },
+  {
+    name: "Enterprise",
+    price: { monthly: 199, annually: 149 },
+    description: "Custom models trained on your infrastructure.",
+    features: ["Custom AI Model Fine-tuning", "On-Premise Deployment", "Dedicated Account Manager", "Bank-Grade SLA", "SSO & Advanced Security"],
+    popular: false,
+    icon: <Lock size={24} className="text-purple-400" />
+  }
+];
+
+const FAQS = [
+  {
+    question: "Do I need to know Python, SQL, or Excel Macros?",
+    answer: "Absolutely not. Axcel GenIe is powered by a Natural Language Processing engine. You simply type 'clean the messy dates and remove duplicate emails', and the AI executes the complex logic in the background within milliseconds."
+  },
+  {
+    question: "How secure is my proprietary company data?",
+    answer: "We employ AES-256 encryption at rest and TLS 1.3 in transit. For Enterprise clients, we offer zero-data-retention policies where your data is processed entirely in memory and immediately discarded. We never train our base models on your data."
+  },
+  {
+    question: "Can it handle massive datasets (1M+ rows)?",
+    answer: "Yes. Our backend utilizes distributed columnar databases (similar to Apache Parquet) allowing us to process millions of rows in seconds, completely bypassing the traditional limits of desktop spreadsheet software."
+  },
+  {
+    question: "Does it integrate with my existing tech stack?",
+    answer: "Natively. With one click, you can connect Google Sheets, Microsoft 365, Snowflake, PostgreSQL, and AWS S3. You can also use our RESTful API to trigger cleaning pipelines automatically."
+  }
+];
+
+const TESTIMONIALS = [
+  { name: "Sarah Jenkins", role: "Head of Data, FinTech Startup", text: "Axcel GenIe replaced a 400-line Python script that kept breaking. Now, my analysts just talk to the data. It's witchcraft." },
+  { name: "Rahul Sharma", role: "Operations Lead, E-commerce", text: "We used to spend 4 hours every Monday cleaning vendor sheets. GenIe does it in 4 seconds. It's not just a tool, it's an employee." },
+  { name: "Elena Rodriguez", role: "CFO, Retail Group", text: "The instant visual analytics blew me away. I asked it to forecast Q3 revenue based on messy Q1/Q2 data, and it built a dashboard instantly." },
+  { name: "David Chen", role: "Marketing Director", text: "I don't know how VLOOKUP works and I never will. GenIe merged my HubSpot CRM data with Facebook Ads data flawlessly." }
+];
+
+// ==========================================
+// 2. MOTION VARIANTS (For hyper-smooth animations)
+// ==========================================
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+};
+
+// ==========================================
+// 3. REUSABLE UI COMPONENTS
+// ==========================================
+
+const Button = ({ variant = 'primary', children, className = "", ...props }: any) => {
+  const variants: any = {
+    primary: "relative overflow-hidden bg-white text-black font-bold shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] transition-all duration-300 active:scale-95 group",
+    outline: "relative overflow-hidden border border-white/10 bg-white/5 text-white backdrop-blur-md hover:bg-white/10 transition-all duration-300 active:scale-95 group",
+    ghost: "text-gray-400 hover:text-white transition-colors duration-300"
+  };
+
+  return (
+    <button className={`px-8 py-4 rounded-2xl flex items-center justify-center gap-2 ${variants[variant]} ${className}`} {...props}>
+      {variant === 'primary' && (
+        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+      )}
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
+    </button>
+  );
+};
+
+// ==========================================
+// 4. THE INTERACTIVE DASHBOARD SIMULATOR
+// ==========================================
+
+const DashboardSimulator = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (isProcessing) {
+      interval = setInterval(() => {
+        setProgress(p => {
+          if (p >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              setIsProcessing(false);
+              setStep(2); // Show Clean Data
+            }, 500);
+            return 100;
+          }
+          return p + 2;
+        });
+      }, 50);
+    }
+    return () => clearInterval(interval);
+  }, [isProcessing]);
+
+  const runSimulation = () => {
+    setStep(1);
+    setProgress(0);
+    setIsProcessing(true);
+  };
+
+  const resetSimulation = () => {
+    setStep(0);
+    setProgress(0);
+    setIsProcessing(false);
+  };
+
+  const messyData = [
+    { id: "US-992", email: "john..doe@gmail", date: "02/30/2024", rev: "$NaN" },
+    { id: "US-992", email: "JOHNDOE@GMAIL.COM", date: "45012", rev: "null" },
+    { id: "UK-104", email: "sarah_j@company,co", date: "12-05-24", rev: "-$400" },
+  ];
+
+  const cleanData = [
+    { id: "US-992", email: "john.doe@gmail.com", date: "2024-02-28", rev: "$1,200.00" },
+    { id: "UK-104", email: "sarah.j@company.co.uk", date: "2024-05-12", rev: "$400.00" },
+  ];
+
+  return (
+    <div className="w-full max-w-6xl mx-auto mt-24 relative z-20 perspective-1000">
+      <motion.div 
+        initial={{ rotateX: 20, y: 100, opacity: 0 }}
+        animate={{ rotateX: 0, y: 0, opacity: 1 }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        className="rounded-[2.5rem] border border-white/10 bg-[#0A0C10]/80 backdrop-blur-3xl shadow-[0_0_100px_rgba(37,99,235,0.15)] overflow-hidden flex flex-col transform-style-3d"
+      >
+        {/* Fake OS Header */}
+        <div className="h-14 border-b border-white/5 bg-white/[0.02] flex items-center px-6 justify-between">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/80" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+            <div className="w-3 h-3 rounded-full bg-green-500/80" />
+          </div>
+          <div className="flex bg-[#05070A] rounded-lg border border-white/5 p-1 gap-1">
+            <button onClick={resetSimulation} className={`px-4 py-1 rounded-md text-xs font-mono transition-colors ${step === 0 ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>Raw</button>
+            <button onClick={runSimulation} className={`px-4 py-1 rounded-md text-xs font-mono transition-colors flex items-center gap-2 ${step === 1 ? 'bg-blue-600/20 text-blue-400' : 'text-gray-500 hover:text-white'}`}>
+              {step === 1 ? <Sparkles size={12} className="animate-pulse" /> : <Play size={12} />} AI Engine
+            </button>
+            <button className={`px-4 py-1 rounded-md text-xs font-mono transition-colors ${step === 2 ? 'bg-green-500/20 text-green-400' : 'text-gray-500 hover:text-white'}`}>Clean</button>
+          </div>
+          <div className="w-16" /> {/* Spacer */}
+        </div>
+
+        {/* Dashboard Body */}
+        <div className="flex h-[450px]">
+          {/* Sidebar */}
+          <div className="w-64 border-r border-white/5 p-4 flex flex-col gap-6 hidden md:flex bg-black/20">
+             <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Data Sources</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm text-gray-300 p-2 rounded-lg bg-white/5 border border-white/5"><Database size={16} className="text-blue-400"/> Q1_Sales.csv</div>
+                  <div className="flex items-center gap-3 text-sm text-gray-500 p-2 rounded-lg hover:bg-white/5"><FileSpreadsheet size={16}/> HubSpot_Leads</div>
+                </div>
+             </div>
+             <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">AI Commands</p>
+                <div className="space-y-2">
+                <div className="text-xs text-blue-400 font-mono p-2 rounded-lg bg-blue-900/20 border border-blue-500/20">&gt; fix_date_formats</div>
+<div className="text-xs text-blue-400 font-mono p-2 rounded-lg bg-blue-900/20 border border-blue-500/20">&gt; remove_duplicates</div>
+<div className="text-xs text-blue-400 font-mono p-2 rounded-lg bg-blue-900/20 border border-blue-500/20">&gt; sanitize_currency</div>
+                </div>
+             </div>
+          </div>
+
+          {/* Main Stage */}
+          <div className="flex-1 p-6 flex flex-col relative overflow-hidden">
+            {step === 1 && (
+              <div className="absolute inset-0 z-10 bg-[#0A0C10]/90 backdrop-blur-sm flex flex-col items-center justify-center">
+                <div className="w-24 h-24 relative mb-8">
+                  <svg className="absolute inset-0 w-full h-full animate-[spin_3s_linear_infinite]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(37,99,235,0.2)" strokeWidth="4" />
+                    <path d="M50 2 A48 48 0 0 1 98 50" fill="none" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <Wand2 size={32} className="text-blue-400 animate-pulse" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black mb-2 text-white">AI Agent is cleaning...</h3>
+                <p className="text-gray-400 font-mono text-sm mb-6">Executing anomaly detection algorithm</p>
+                <div className="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-75" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-xs uppercase tracking-widest text-gray-500">
+                    <th className="p-3">User_ID</th>
+                    <th className="p-3">Email_Address</th>
+                    <th className="p-3">Signup_Date</th>
+                    <th className="p-3">Total_Revenue</th>
+                    {step === 0 && <th className="p-3">AI_Status</th>}
+                  </tr>
+                </thead>
+                <tbody className="font-mono text-sm">
+                  {step === 0 ? messyData.map((row, i) => (
+                    <tr key={i} className="border-b border-white/5 bg-red-500/5">
+                      <td className="p-3 text-red-400">{row.id}</td>
+                      <td className="p-3 text-red-400">{row.email}</td>
+                      <td className="p-3 text-red-400">{row.date}</td>
+                      <td className="p-3 text-red-400">{row.rev}</td>
+                      <td className="p-3 flex items-center gap-2 text-red-500 text-xs"><AlertCircle size={14}/> Broken</td>
+                    </tr>
+                  )) : step === 2 ? cleanData.map((row, i) => (
+                    <tr key={i} className="border-b border-white/5 bg-green-500/5 animate-[fade-in_0.5s_ease-out]">
+                      <td className="p-3 text-green-400">{row.id}</td>
+                      <td className="p-3 text-green-400">{row.email}</td>
+                      <td className="p-3 text-green-400">{row.date}</td>
+                      <td className="p-3 text-green-400">{row.rev}</td>
+                    </tr>
+                  )) : null}
+                </tbody>
+              </table>
+            </div>
+
+            {step === 0 && (
+               <div className="mt-4 flex justify-end">
+                 <button onClick={runSimulation} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all active:scale-95">
+                   <Sparkles size={18} /> Clean this mess
+                 </button>
+               </div>
+            )}
+            {step === 2 && (
+               <div className="mt-4 flex justify-between items-center bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl">
+                 <div className="flex items-center gap-3 text-blue-400 font-mono text-sm">
+                   <CheckCircle2 size={18} /> 
+                   <span>Removed 1 duplicate. Standardized 3 date formats. Fixed 2 currency errors.</span>
+                 </div>
+                 <button onClick={resetSimulation} className="text-gray-400 hover:text-white text-xs underline">Reset Demo</button>
+               </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ==========================================
+// 5. THE MAIN LANDING PAGE COMPONENT
+// ==========================================
+
+export default function LandingPage() {
+  const [annualBilling, setAnnualBilling] = useState(true);
+  const [activeFaq, setActiveFaq] = useState<number | null>(0);
+  const { scrollYProgress } = useScroll();
+  const yParallax = useTransform(scrollYProgress, [0, 1], [0, -200]);
+
+  return (
+    <main className="min-h-screen bg-[#030406] text-white overflow-hidden selection:bg-blue-500/30 selection:text-white">
+      
+      {/* --- HYPER-PREMIUM BACKGROUND NOISE & MESH --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]" />
+        
+        {/* Dynamic Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-600/15 blur-[150px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 blur-[150px] rounded-full animate-[pulse_10s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] bg-cyan-500/5 blur-[120px] rounded-full" />
+      </div>
+
+      {/* --- ADVANCED NAVBAR --- */}
+      <nav className="fixed top-0 w-full z-[100] border-b border-white/5 bg-[#030406]/50 backdrop-blur-3xl supports-[backdrop-filter]:bg-[#030406]/50">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="text-2xl font-black tracking-tighter flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)] group-hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] transition-shadow">
+              <Terminal size={20} className="text-white" />
+            </div>
+            <span>AXCEL<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic">GENIE</span></span>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#compare" className="hover:text-white transition-colors">Compare</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button className="hidden md:block text-sm font-semibold text-gray-300 hover:text-white transition-colors">Sign In</button>
+            <Button variant="primary" className="h-10 px-6 py-0 text-sm rounded-xl">Start Building</Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* --- SECTION 1: THE HERO (Cinematic Scale) --- */}
+      <section className="relative pt-48 pb-20 px-6 z-10 flex flex-col items-center justify-center min-h-screen">
+        
+        {/* Floating Badge */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.9 }} 
+          animate={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 0.8, ease: "backOut" }}
+          className="relative group cursor-pointer"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+          <div className="relative inline-flex items-center gap-3 px-5 py-2 rounded-full border border-white/10 bg-[#05070A] backdrop-blur-md text-xs font-bold uppercase tracking-widest text-gray-300 mb-10">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            GenIe 2.0 Agent is Live <ArrowRight size={14} className="text-gray-500 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </motion.div>
+        
+        {/* Massive Dynamic Headline */}
+        <motion.h1 
+          initial="hidden" animate="visible" variants={staggerContainer}
+          className="text-center text-6xl md:text-[120px] font-black tracking-[-0.04em] leading-[0.85] mb-10 max-w-6xl mx-auto"
+        >
+          <motion.span variants={fadeUpVariant} className="block text-white">Stop cleaning data.</motion.span>
+          <motion.span variants={fadeUpVariant} className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-600 italic">
+            Start talking to it.
+          </motion.span>
+        </motion.h1>
+
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
+          className="text-lg md:text-2xl text-gray-400 max-w-3xl mx-auto text-center mb-14 font-medium leading-relaxed"
+        >
+          Axcel GenIe is the autonomous AI agent that sanitizes, formats, and analyzes messy spreadsheets in seconds. Zero formulas required.
+        </motion.p>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.8 }}
+          className="flex flex-col sm:flex-row gap-6 relative z-20"
+        >
+          <Button variant="primary" className="h-16 px-10 text-lg">Deploy Agent Free</Button>
+          <Button variant="outline" className="h-16 px-10 text-lg group">
+            <Play size={20} className="text-gray-400 group-hover:text-white transition-colors" /> View Live Demo
+          </Button>
+        </motion.div>
+
+        {/* The Dashboard Component Inject */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 1 }} className="w-full">
+          <DashboardSimulator />
+        </motion.div>
+
+      </section>
+
+      {/* --- SECTION 2: TRUSTED BY MARQUEE --- */}
+      <section className="py-20 border-y border-white/5 bg-white/[0.01] overflow-hidden relative z-10">
+        <div className="max-w-7xl mx-auto px-6 mb-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-gray-500">Trusted by modern data teams at</p>
+        </div>
+        <div className="flex w-[200%] animate-[marquee_20s_linear_infinite] opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+           {[...Array(2)].map((_, i) => (
+             <div key={i} className="flex justify-around w-1/2 items-center gap-10 px-10 text-2xl font-black text-gray-400 tracking-tighter">
+                <span>ACME CORP</span>
+                <span>GLOBAL<span className="font-light">DATA</span></span>
+                <span>NEXUS</span>
+                <span className="italic">VENTURES</span>
+                <span>SYNERGY</span>
+             </div>
+           ))}
+        </div>
+      </section>
+
+      {/* --- SECTION 3: THE BENTO GRID FEATURES --- */}
+      <section id="features" className="py-40 px-6 relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-24">
+            <h2 className="text-5xl md:text-7xl font-black mb-6">Engineered for <br/><span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">Intelligence.</span></h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">Traditional tools require you to learn their language. GenIe learns yours.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[350px]">
+            
+            {/* Bento 1: Large NLP Feature */}
+            <div className="md:col-span-8 rounded-[3rem] bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-12 relative overflow-hidden group hover:border-white/20 transition-all duration-500">
+               <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-600/20 blur-[80px] rounded-full group-hover:bg-blue-600/30 transition-all" />
+               <div className="relative z-10 h-full flex flex-col justify-between">
+                 <div>
+                    <h3 className="text-3xl font-bold mb-4">Natural Language Engine</h3>
+                    <p className="text-gray-400 text-lg max-w-md">Type what you want. "Extract domains from emails and group by revenue." Watch it happen instantly.</p>
+                 </div>
+                 
+                 {/* Visual Interactive Element */}
+                 <div className="w-full bg-[#05070A] rounded-2xl border border-white/5 p-4 mt-8 flex flex-col gap-4">
+                    <div className="bg-white/5 rounded-xl p-3 text-sm text-gray-300 font-mono flex items-center justify-between">
+                       <span>Group users by cohort and highlight top 10%</span>
+                       <div className="bg-white text-black px-2 py-1 rounded text-xs font-bold">↵ ENTER</div>
+                    </div>
+                    <div className="flex items-center gap-3 text-blue-400 font-mono text-xs">
+                       <Sparkles size={14} className="animate-spin-slow" /> Compiling logical AST... Executed in 0.4s
+                    </div>
+                 </div>
+               </div>
+            </div>
+
+            {/* Bento 2: Connections */}
+            <div className="md:col-span-4 rounded-[3rem] bg-white/[0.02] border border-white/10 p-12 relative overflow-hidden group hover:border-white/20 transition-all flex flex-col justify-between">
+               <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-white/10 flex items-center justify-center mb-6">
+                 <Cloud size={24} className="text-purple-400" />
+               </div>
+               <div>
+                  <h3 className="text-2xl font-bold mb-2">Live Sync</h3>
+                  <p className="text-gray-400 text-sm">Don't export CSVs. Connect directly to Postgres, Snowflake, or Google Sheets. GenIe writes back securely.</p>
+               </div>
+               
+               {/* Visual */}
+               <div className="absolute right-[-20px] bottom-[-20px] opacity-20 group-hover:opacity-100 transition-opacity">
+                  <Database size={150} className="text-white" />
+               </div>
+            </div>
+
+            {/* Bento 3: Visuals */}
+            <div className="md:col-span-4 rounded-[3rem] bg-white/[0.02] border border-white/10 p-12 relative overflow-hidden group hover:border-white/20 transition-all flex flex-col justify-between">
+               <div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-2xl border border-white/10 flex items-center justify-center mb-6">
+                 <BarChart3 size={24} className="text-yellow-400" />
+               </div>
+               <div>
+                  <h3 className="text-2xl font-bold mb-2">Instant Charts</h3>
+                  <p className="text-gray-400 text-sm">One click turns a boring table into an interactive dashboard. Export directly to PDF or React.</p>
+               </div>
+               {/* Growing Bars Animation */}
+               <div className="absolute right-10 bottom-10 flex items-end gap-2 h-20 opacity-50 group-hover:opacity-100 transition-all">
+                  <div className="w-6 bg-white/10 rounded-t-md h-[40%] group-hover:h-[60%] transition-all duration-500" />
+                  <div className="w-6 bg-yellow-500/50 rounded-t-md h-[20%] group-hover:h-[80%] transition-all duration-500 delay-100" />
+                  <div className="w-6 bg-blue-500 rounded-t-md h-[60%] group-hover:h-[100%] transition-all duration-500 delay-200" />
+               </div>
+            </div>
+
+            {/* Bento 4: Security */}
+            <div className="md:col-span-8 rounded-[3rem] bg-[#0A0C10] border border-white/10 p-12 relative overflow-hidden group hover:border-blue-500/30 transition-all flex flex-col md:flex-row items-center justify-between gap-10">
+               <div className="relative z-10">
+                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 text-xs font-bold mb-6">
+                   <Shield size={14} /> SOC2 Type II Certified
+                 </div>
+                 <h3 className="text-3xl font-bold mb-4">Fort Knox for your Data.</h3>
+                 <p className="text-gray-400 text-lg max-w-md">We use ephemeral processing. Your data is encrypted, analyzed in memory, and immediately destroyed. Zero retention.</p>
+               </div>
+               
+               {/* Visual Shield */}
+               <div className="w-48 h-48 relative flex items-center justify-center">
+                  <div className="absolute inset-0 border-2 border-dashed border-white/10 rounded-full animate-[spin_20s_linear_infinite]" />
+                  <div className="absolute inset-4 border-2 border-blue-500/30 rounded-full animate-[spin_10s_linear_infinite_reverse]" />
+                  <div className="absolute inset-8 border border-white/5 bg-black rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(37,99,235,0.2)]">
+                     <Lock size={40} className="text-blue-500" />
+                  </div>
+               </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* --- SECTION 4: THE BRUTAL COMPARISON --- */}
+      <section id="compare" className="py-40 px-6 relative z-10 bg-black border-y border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-20">
+             <h2 className="text-5xl font-black mb-6">The Old Way vs <span className="text-blue-500">The GenIe Way</span></h2>
+             <p className="text-xl text-gray-500">Stop doing manual labor in 2026.</p>
+          </div>
+
+          <div className="rounded-[3rem] border border-white/10 bg-[#05070A] overflow-hidden shadow-2xl">
+            <div className="grid grid-cols-3 border-b border-white/10 bg-white/[0.02]">
+              <div className="p-8 text-sm font-bold uppercase tracking-widest text-gray-500">Task</div>
+              <div className="p-8 text-sm font-bold uppercase tracking-widest text-red-500 border-l border-white/5">Excel / Sheets</div>
+              <div className="p-8 text-sm font-black uppercase tracking-widest text-blue-400 border-l border-white/5 bg-blue-600/5">Axcel GenIe</div>
+            </div>
+            
+            {[
+              { task: "Remove Duplicates", old: "Data > Remove Duplicates > Pray it works", new: "Auto-detected upon upload", oldIcon: <AlertCircle size={16} className="text-red-500" />, newIcon: <CheckCircle2 size={16} className="text-blue-500" /> },
+              { task: "Merge Datasets", old: "Nested VLOOKUPs & Index-Match", new: "Plain English: 'Join on email'", oldIcon: <AlertCircle size={16} className="text-red-500" />, newIcon: <CheckCircle2 size={16} className="text-blue-500" /> },
+              { task: "Date Formatting", old: "Manual parsing & Text-to-Columns", new: "AI standardizes to ISO-8601 instantly", oldIcon: <AlertCircle size={16} className="text-red-500" />, newIcon: <CheckCircle2 size={16} className="text-blue-500" /> },
+              { task: "Regex Extraction", old: "Write complex RegExp syntax", new: "'Extract the domain names'", oldIcon: <AlertCircle size={16} className="text-red-500" />, newIcon: <CheckCircle2 size={16} className="text-blue-500" /> }
+            ].map((row, i) => (
+              <div key={i} className="grid grid-cols-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors last:border-0 group">
+                <div className="p-8 font-medium text-gray-300 flex items-center">{row.task}</div>
+                <div className="p-8 text-gray-500 border-l border-white/5 flex items-center gap-3">{row.oldIcon} {row.old}</div>
+                <div className="p-8 text-white font-bold border-l border-white/5 bg-blue-600/5 flex items-center gap-3 group-hover:bg-blue-600/10 transition-colors">{row.newIcon} {row.new}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- SECTION 5: PRICING (3D Cards) --- */}
+      <section id="pricing" className="py-40 px-6 relative z-10">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 blur-[200px] rounded-full -z-10" />
+        
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-7xl font-black mb-8">Invest in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Automation.</span></h2>
+            
+            {/* Toggle */}
+            <div className="inline-flex bg-white/5 p-1 rounded-2xl border border-white/10">
+              <button onClick={() => setAnnualBilling(false)} className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${!annualBilling ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}>Monthly</button>
+              <button onClick={() => setAnnualBilling(true)} className={`px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${annualBilling ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+                Annually <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">Save 20%</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            {PRICING_TIERS.map((tier, i) => (
+              <motion.div 
+                key={i}
+                whileHover={{ y: -10 }}
+                className={`relative p-10 rounded-[3rem] border flex flex-col h-full ${tier.popular ? 'border-blue-500/50 bg-[#0A0C10] shadow-[0_0_50px_rgba(37,99,235,0.2)] scale-105 z-10' : 'border-white/10 bg-white/[0.02]'}`}
+              >
+                {tier.popular && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                    Most Popular
+                  </div>
+                )}
+                
+                <div className="mb-6">{tier.icon}</div>
+                <h3 className="text-2xl font-bold mb-2 text-white">{tier.name}</h3>
+                <p className="text-gray-500 text-sm mb-8 h-10">{tier.description}</p>
+                
+                <div className="mb-10">
+                  <span className="text-6xl font-black text-white">${annualBilling ? tier.price.annually : tier.price.monthly}</span>
+                  <span className="text-gray-500 font-medium">/month</span>
+                </div>
+
+                <ul className="space-y-5 mb-10 flex-1">
+                  {tier.features.map((feat, j) => (
+                    <li key={j} className="flex items-start gap-3 text-sm text-gray-300">
+                      <CheckCircle2 size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                      {feat}
+                    </li>
+                  ))}
+                </ul>
+
+                <Button variant={tier.popular ? 'primary' : 'outline'} className="w-full">
+                  {tier.name === "Enterprise" ? "Contact Sales" : "Get Started"}
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- SECTION 6: FAQ ACCORDION --- */}
+      <section className="py-40 px-6 relative z-10 bg-[#05070A] border-t border-white/5">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-black mb-6">Frequently Asked <br/>Questions</h2>
+            <p className="text-gray-500">Everything you need to know about the product and billing.</p>
+          </div>
+
+          <div className="space-y-4">
+            {FAQS.map((faq, i) => (
+              <div 
+                key={i} 
+                onClick={() => setActiveFaq(activeFaq === i ? null : i)}
+                className="group p-6 md:p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-bold text-white pr-8">{faq.question}</h4>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-transform duration-300 ${activeFaq === i ? 'rotate-180 bg-white/10' : ''}`}>
+                     <ChevronDown size={16} className="text-gray-400" />
+                  </div>
+                </div>
+                
+                <AnimatePresence>
+                  {activeFaq === i && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="mt-6 text-gray-400 leading-relaxed border-t border-white/5 pt-6">
+                        {faq.answer}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- SECTION 7: MEGA CTA & FOOTER --- */}
+      <footer className="relative pt-40 border-t border-white/10 bg-black overflow-hidden z-10">
+         {/* Footer Glow */}
+         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-blue-600/20 blur-[150px] rounded-t-full pointer-events-none" />
+         
+         <div className="max-w-7xl mx-auto px-6 relative z-10">
+            
+            {/* The Big CTA Box */}
+            <div className="rounded-[4rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-16 md:p-24 text-center relative overflow-hidden shadow-2xl mb-32">
+               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05]" />
+               <h2 className="text-5xl md:text-7xl font-black mb-8 relative z-10">Ready to tame <br/>your data?</h2>
+               <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto relative z-10">Join 500+ forward-thinking teams who have replaced manual spreadsheets with autonomous AI.</p>
+               <Button className="mx-auto h-16 px-12 text-lg relative z-10">Create Free Workspace</Button>
+            </div>
+
+            {/* Footer Links */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-20">
+               <div className="col-span-2">
+                 <div className="text-3xl font-black tracking-tighter flex items-center gap-2 mb-6">
+                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                     <Terminal size={14} className="text-white" />
+                   </div>
+                   AXCEL<span className="text-gray-500 italic">GENIE</span>
+                 </div>
+                 <p className="text-gray-500 mb-8 max-w-sm">The world's first autonomous AI agent specifically engineered for data cleaning, formatting, and analysis.</p>
+                 <div className="flex items-center gap-4">
+                    <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black transition-all">𝕏</a>
+                    <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black transition-all">in</a>
+                 </div>
+               </div>
+               
+               <div>
+                  <h4 className="font-bold text-white mb-6 uppercase tracking-widest text-xs">Product</h4>
+                  <ul className="space-y-4 text-gray-500 text-sm">
+                     <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Changelog</a></li>
+                  </ul>
+               </div>
+
+               <div>
+                  <h4 className="font-bold text-white mb-6 uppercase tracking-widest text-xs">Resources</h4>
+                  <ul className="space-y-4 text-gray-500 text-sm">
+                     <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+                  </ul>
+               </div>
+
+               <div>
+                  <h4 className="font-bold text-white mb-6 uppercase tracking-widest text-xs">Legal</h4>
+                  <ul className="space-y-4 text-gray-500 text-sm">
+                     <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                     <li><a href="#" className="hover:text-white transition-colors">Security (SOC2)</a></li>
+                  </ul>
+               </div>
+            </div>
+
+            {/* Copyright */}
+            <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-gray-600">
+               <p>© 2026 Axcel Industries. All rights reserved.</p>
+               <p className="flex items-center gap-2">Built with <Sparkles size={12} className="text-blue-500" /> for the future of work.</p>
+            </div>
+         </div>
+      </footer>
+
+      {/* Global CSS for Animations */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes scan {
+          0% { top: -10%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 110%; opacity: 0; }
+        }
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+      `}} />
+    </main>
+  );
+}
