@@ -1,39 +1,10 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
-import { PlanTier, UserRole } from "@prisma/client"; //
 
-// ✅ Core imports for augmentation
-import "next-auth";
-import { JWT } from "next-auth/jwt"; // ✅ Explicit import for JWT
+// No type augmentation here – it's in next-auth.d.ts
 
-// ✅ Type Augmentation
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      plan: PlanTier; //
-      role: UserRole; //
-    } & DefaultSession["user"];
-  }
-
-  interface User {
-    id?: string;
-    plan: PlanTier; //
-    role: UserRole; //
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    plan: PlanTier;
-    role: UserRole;
-  }
-}
-
-// ✅ Main Auth Logic
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -41,17 +12,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id as string;
-        token.plan = user.plan;
-        token.role = user.role;
+        token.id = user.id!;      // user exists, id is present from DB
+        token.plan = user.plan!;  // plan is always present (default BASIC)
+        token.role = user.role!;  // role is always present (default MEMBER)
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id;
-        session.user.plan = token.plan;
-        session.user.role = token.role;
+        session.user.id = token.id!;
+        session.user.plan = token.plan!;
+        session.user.role = token.role!;
       }
       return session;
     },
