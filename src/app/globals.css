@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ========= Genie Theme ========= */
+@theme {
+  /* Brand = Amber (Signature Identity) */
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffe4c4;
+  --color-brand-200: #ffc278;
+  --color-brand-300: #f59e0b;
+  --color-brand-400: #d97706;
+  --color-brand-500: #b45309;
+  --color-brand-600: #92400e;
+  --color-brand-700: #78350f;
+  --color-brand-800: #451a03;
+  --color-brand-900: #1c0a00;
+  --color-brand: #f59e0b;
+
+  /* Surface = Premium Dark Slate */
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #020617;
+
+  /* Core Accents for Dashboard Elements */
+  --color-accent-amber: #f59e0b;
+  --color-accent-blue: #3b82f6; 
+  --color-accent-purple: #8b5cf6;
+
+  --font-family-sans: "Inter", system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", monospace;
+
+  --shadow-genie-glow: 0 0 15px rgba(245, 158, 11, 0.3);
+  --shadow-genie-glow-lg: 0 0 30px rgba(245, 158, 11, 0.4);
+
+  --animate-pulse-gold: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ========= Base ========= */
+html {
+  @apply antialiased;
+  scroll-behavior: smooth;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-surface-950 text-surface-50 font-sans;
+}
+
+/* ========= Scrollbar Theming ========= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-surface-950;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-surface-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-surface-500;
+}
+
+/* Hide scrollbar strictly for specific tight layout areas */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========= Component Classes ========= */
+.glass-panel {
+  @apply bg-surface-900/80 backdrop-blur-xl border border-surface-800 shadow-xl;
+}
+
+.btn-genie {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+  bg-brand-500 text-white hover:bg-brand-400 
+  focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface-950;
+}
+
+.btn-genie-ghost {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+  bg-transparent text-brand-400 hover:bg-brand-500/10 border border-brand-500/30
+  focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface-950;
+}
+
+/* ========= Keyframes ========= */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); }
+}
+body {
+  background-color: var(--color-surface-950);
+  color: var(--color-surface-50);
+  font-family: var(--font-family-sans);
 }
